@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "pink2-concordia-dac"
+version = "0.1.0"
+description = ""
+authors = ["Jean-Baptiste Waring <jean-baptiste@zetane.com>"]
+readme = "README.md"
+packages = [{include = "pink2_concordia_dac"}]
+
+[tool.poetry.dependencies]
+python = "<3.13,>=3.9"
+qiskit = "^0.44.2"
+numpy = "^1.26.0"
+matplotlib = "^3.8.0"
+ipykernel = "^6.25.2"
+pylatexenc = "^2.10"
+qiskit-aer = "^0.13.0"
+qiskit-algorithms = "^0.2.1"
+qiskit-ibm-runtime = "^0.12.2"
+watchdog = "^3.0.0"
+rustworkx = "^0.13.2"
+plotext = "^5.2.8"
+pip = "^23.3.1"
+install = "^1.3.5"
+qiskit-qasm3-import = "^0.3.0"
+seaborn = "^0.13.0"
+qiskit-ibm-provider = "^0.7.2"
+python-dotenv = "^1.0.0"
+qiskit-experiments = "^0.5.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
