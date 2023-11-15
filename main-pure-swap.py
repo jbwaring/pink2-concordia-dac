@@ -89,13 +89,27 @@ def completion_handler_to_file(experiment_no, backend_name, fidelities, is_sim):
         f.write(str(fidelities))
 
 
+def ensure_dirs_exist():
+    if not os.path.isdir(os.path.join(os.getcwd(), "logs")):
+        print(
+            "Creating logs directory... @{}".format(os.path.join(os.getcwd(), "logs")))
+        os.makedirs(os.path.join(os.getcwd(), "logs"))
+    else:
+        print("logs directory already exists, skipping...")
+
+    if not os.path.isdir(os.path.join(os.getcwd(), "results")):
+        print(
+            "Creating results directory... @{}".format(os.path.join(os.getcwd(), "results")))
+        os.makedirs(os.path.join(os.getcwd(), "results"))
+    else:
+        print("results directory already exists, skipping...")
+
+
 if __name__ == "__main__":
-
+    ensure_dirs_exist()
     log = Logger(prefix="main", should_save_to_file='main')
-
     log.clear()
     log.debug("main.py ==> PureSWAPCNOTExperimentsController")
-
     log.debug("SHOULD_RUN_ON_SIM: {}".format(SHOULD_RUN_ON_SIM))
     log.debug("NUMBER_OF_SHOTS: {}".format(NUMBER_OF_SHOTS))
     log.debug("BACKEND_NAME: {}".format(BACKEND_NAME))
