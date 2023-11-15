@@ -11,8 +11,22 @@ NUMBER_OF_EXPERIMENTS = os.environ.get("NUMBER_OF_EXPERIMENTS")
 
 
 class Logger:
+    """
+    Logger class for handling logs.
+
+    Attributes:
+        prefix (str): Prefix to be added to each log message.
+        file (str): Path to the log file where the logs will be saved.
+    """
 
     def __init__(self, prefix, should_save_to_file=None):
+        """
+        Initializes the Logger class with a prefix and an optional file saving feature.
+
+        Args:
+            prefix (str): Prefix for log messages.
+            should_save_to_file (str, optional): Filename to save logs to. Defaults to None.
+        """
         self.prefix = prefix
         if should_save_to_file is not None:
             self.file = os.path.join(
@@ -21,6 +35,12 @@ class Logger:
                 f.write("")
 
     def debug(self, *kwargs):
+        """
+        Logs a debug message.
+
+        Args:
+            *kwargs: Variable length argument list for log messages.
+        """
         if self.prefix:
             print("\u001b[34m[{}]\u001b[0m".format(self.prefix), *kwargs)
         else:
@@ -29,9 +49,16 @@ class Logger:
         self.save_to_file(*kwargs)
 
     def clear(self):
+        """Clears the console."""
         os.system('clear')
 
     def save_to_file(self, *kwargs):
+        """
+        Saves a log message to a file.
+
+        Args:
+            *kwargs: Variable length argument list for log messages.
+        """
         if self.file:
             with open(self.file, "a") as f:
                 if self.prefix:
@@ -44,7 +71,18 @@ class Logger:
 
 
 def run_experiment(experiment_no=0, backend=None, completion_handler=None, service=None):
+    """
+    Runs a quantum experiment.
 
+    Args:
+        experiment_no (int, optional): The experiment number. Defaults to 0.
+        backend: The backend on which the experiment is run.
+        completion_handler: Function to be called upon completion of the experiment.
+        service: Service provider for running experiments (will be used to get simulator).
+
+    Raises:
+        Exception: If essential parameters are not provided.
+    """
     if backend is None:
         raise Exception("Backend cannot be None.")
     if completion_handler is None:
@@ -80,7 +118,15 @@ def run_experiment(experiment_no=0, backend=None, completion_handler=None, servi
 
 
 def completion_handler_to_file(experiment_no, backend_name, fidelities, is_sim):
+    """
+    Handles the completion of an experiment by saving results to a file.
 
+    Args:
+        experiment_no (int): The experiment number.
+        backend_name (str): Name of the backend used.
+        fidelities: The fidelities obtained from the experiment.
+        is_sim (bool): Indicates if the experiment was run on a simulator.
+    """
     with open(os.path.join(
             os.getcwd(), "results", "{}-exp={}-is_sim={}.dat".format(
                 backend_name, experiment_no, is_sim
@@ -90,6 +136,10 @@ def completion_handler_to_file(experiment_no, backend_name, fidelities, is_sim):
 
 
 def ensure_dirs_exist():
+    """
+    Ensures that the necessary directories for logs and results exist.
+    Creates them if they do not exist.
+    """
     if not os.path.isdir(os.path.join(os.getcwd(), "logs")):
         print(
             "Creating logs directory... @{}".format(os.path.join(os.getcwd(), "logs")))
