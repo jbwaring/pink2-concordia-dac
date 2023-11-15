@@ -5,8 +5,21 @@ from qiskit_experiments.library import ProcessTomography
 
 
 class PureSWAPCNOTExperimentsController:
+    """
+    Experiment Controller for long range CNOT using only SWAPs.
+    """
 
     def __init__(self, backend, shots=1024, path=None, simulator=None, log=None):
+        """
+        Initializes the experiment controller with specified parameters.
+
+        Args:
+            backend: The backend to run experiments on or to use for coupling_map.
+            shots (int): Number of shots for each experiment.
+            path: List of adjacent qubit indices to be traversed. (Defaults to using shortest_undirected_path between indices 0 and backend.num_qubits - 1)
+            simulator: The simulator backend, if not none, experiments will be run on the simulator.
+            log: Logger for logging messages (defaults to python print).
+        """
         if log is None:
             self.debug = lambda *args: print(*args)
         else:
@@ -19,6 +32,12 @@ class PureSWAPCNOTExperimentsController:
             self.build_path()
 
     def run(self, **kwargs):
+        """
+        Runs the experiments on either a simulator or real backend.
+
+        Args:
+            **kwargs: Additional keyword arguments (not used at this time)
+        """
         experiments = self.build_circuits(**kwargs)
         self.jobs = []
 
@@ -50,9 +69,18 @@ class PureSWAPCNOTExperimentsController:
                     ).block_for_results())
 
     def fidelities(self):
+        """
+        Calculates the fidelity of the experiments.
+
+        Returns:
+            A list of fidelity values for the experiments.
+        """
         return [x.analysis_results()[1].value for x in self.jobs]
 
     def build_path(self):
+        """
+        Builds the path for the quantum circuit. Defaults to using shortest_undirected_path between indices 0 and backend.num_qubits - 1
+        """
         self.debug('-build_path')
         self.path = self.backend.coupling_map.shortest_undirected_path(
             0, self.backend.n_qubits - 1)
@@ -60,6 +88,15 @@ class PureSWAPCNOTExperimentsController:
         self.debug('Path length:\t%s', len(self.path))
 
     def build_circuits(self, **kwargs):
+        """
+        Builds the quantum circuits for the experiments.
+
+        Args:
+            **kwargs: Additional keyword arguments (not used yet)
+
+        Returns:
+            A list of quantum circuits.
+        """
         self.debug('-build_circuits')
         circuits = []
         for i in range(len(self.path) - 1):
@@ -75,6 +112,15 @@ class PureSWAPCNOTExperimentsController:
         return [self.build_tomo_experiment(c) for c in circuits]
 
     def build_tomo_experiment(self, circuit):
+        """
+        Builds a process tomography experiment for a given circuit.
+
+        Args:
+            circuit: The quantum circuit for which to build the experiment.
+
+        Returns:
+           ProcessTomography(): The process tomography experiment.
+        """
         self.debug('-build_tomo_experiment for circuit length %s',
                    circuit.num_qubits)
         self.debug('-build_tomo_experiment physical_qubits {}\nPreparation Indices:\t{}\nMeasurement Indices:\t{}.'.format(
@@ -95,6 +141,15 @@ class PureSWAPCNOTExperimentsController:
         )
 
     def build_circuit(self, topological_length):
+        """
+        Builds a single quantum circuit with a specific topological length and performs a CNOT between the first and last qubits.
+
+        Args:
+            topological_length (int): The length of the topology for the circuit. (> 2 swaps are introduced to satisfy coupling_map)
+
+        Returns:
+            QuantumCircuit()
+        """
         c = QuantumCircuit(topological_length)
         for i in range(topological_length - 2):
             c.swap(i, i + 1)
