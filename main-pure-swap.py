@@ -1,4 +1,5 @@
 import os
+import logging
 from lib.helpers import get_qiskit_runtime_service
 from lib.swap_cnot_experiment import PureSWAPCNOTExperimentsController
 from dotenv import load_dotenv
@@ -156,6 +157,7 @@ def ensure_dirs_exist():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     ensure_dirs_exist()
     log = Logger(prefix="main", should_save_to_file='main')
     log.clear()
@@ -173,5 +175,5 @@ if __name__ == "__main__":
 
     log.debug(backend)
 
-    for i in range(NUMBER_OF_EXPERIMENTS):
+    for i in range(int(NUMBER_OF_EXPERIMENTS)):
         run_experiment(i, backend, completion_handler_to_file, service)
