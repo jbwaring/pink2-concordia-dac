@@ -4,26 +4,14 @@ from qiskit.quantum_info.operators import Operator
 from qiskit_experiments.library import ProcessTomography
 
 
-class PureSWAPCNOTExperimentsController:
-    """
-    Experiment Controller for long range CNOT using only SWAPs.
-    """
+class EntanglementSwappingCNOTExperimentsController:
 
     def __init__(self, backend, shots=1024, path=None, simulator=None, log=None):
-        """
-        Initializes the experiment controller with specified parameters.
-
-        Args:
-            backend: The backend to run experiments on or to use for coupling_map.
-            shots (int): Number of shots for each experiment.
-            path: List of adjacent qubit indices to be traversed. (Defaults to using shortest_undirected_path between indices 0 and backend.num_qubits - 1)
-            simulator: The simulator backend, if not none, experiments will be run on the simulator.
-            log: Logger for logging messages (defaults to python print).
-        """
-        if log is None:
-            self.debug = lambda *args: print(*args)
-        else:
+        # logging.getLogger(self.__class__.__name__).info
+        if log is not None:
             self.debug = log.debug
+        else:
+            self.debug = lambda *args: print(*args)
         self.backend = backend
         self.sim = simulator
         self.shots = shots
@@ -32,12 +20,6 @@ class PureSWAPCNOTExperimentsController:
             self.build_path()
 
     def run(self, **kwargs):
-        """
-        Runs the experiments on either a simulator or real backend.
-
-        Args:
-            **kwargs: Additional keyword arguments (not used at this time)
-        """
         experiments = self.build_circuits(**kwargs)
         self.jobs = []
 
@@ -66,21 +48,12 @@ class PureSWAPCNOTExperimentsController:
                     self.jobs.append(exp.run(
                         backend=self.backend,
                         shots=self.shots,
-                    ))
+                    ).block_for_results())
 
     def fidelities(self):
-        """
-        Calculates the fidelity of the experiments.
-
-        Returns:
-            A list of fidelity values for the experiments.
-        """
         return [x.analysis_results()[1].value for x in self.jobs]
 
     def build_path(self):
-        """
-        Builds the path for the quantum circuit. Defaults to using shortest_undirected_path between indices 0 and backend.num_qubits - 1
-        """
         self.debug('-build_path')
         self.path = self.backend.coupling_map.shortest_undirected_path(
             0, self.backend.n_qubits - 1)
@@ -88,19 +61,14 @@ class PureSWAPCNOTExperimentsController:
         self.debug('Path length:\t%s', len(self.path))
 
     def build_circuits(self, **kwargs):
-        """
-        Builds the quantum circuits for the experiments.
-
-        Args:
-            **kwargs: Additional keyword arguments (not used yet)
-
-        Returns:
-            A list of quantum circuits.
-        """
         self.debug('-build_circuits')
         circuits = []
         for i in range(len(self.path) - 1):
-            circuits.append(self.build_circuit(i + 2, **kwargs))
+            try:
+                circuits.append(EntanglementSwappingCNOTCircuitGenerator(
+                    topological_length=i+2).build())
+            except Exception as e:
+                self.debug('Skipping: {}'.format(e))
 
         # Warning: QISKIT IS USING THE OTHER ENDIAN SO USE OTHER CNOT
         self.target_operation = Operator([[1, 0, 0, 0],
@@ -112,15 +80,6 @@ class PureSWAPCNOTExperimentsController:
         return [self.build_tomo_experiment(c) for c in circuits]
 
     def build_tomo_experiment(self, circuit):
-        """
-        Builds a process tomography experiment for a given circuit.
-
-        Args:
-            circuit: The quantum circuit for which to build the experiment.
-
-        Returns:
-           ProcessTomography(): The process tomography experiment.
-        """
         self.debug('-build_tomo_experiment for circuit length %s',
                    circuit.num_qubits)
         self.debug('-build_tomo_experiment physical_qubits {}\nPreparation Indices:\t{}\nMeasurement Indices:\t{}.'.format(
@@ -141,17 +100,50 @@ class PureSWAPCNOTExperimentsController:
         )
 
     def build_circuit(self, topological_length):
-        """
-        Builds a single quantum circuit with a specific topological length and performs a CNOT between the first and last qubits.
-
-        Args:
-            topological_length (int): The length of the topology for the circuit. (> 2 swaps are introduced to satisfy coupling_map)
-
-        Returns:
-            QuantumCircuit()
-        """
         c = QuantumCircuit(topological_length)
         for i in range(topological_length - 2):
             c.swap(i, i + 1)
         c.cnot(topological_length - 2, topological_length - 1)
+        return c
+
+
+class EntanglementSwappingCNOTCircuitGenerator:
+
+    def __init__(self, topological_length):
+        self.topological_length = topological_length
+        if (topological_length < 8):
+            raise Exception('Topological length must be at least 8')
+
+        self.path = list(range(topological_length))
+
+    def build(self):
+        c = QuantumCircuit(self.topological_length, 2)
+        # first bell pair
+        c.h(1)
+        c.cx(1, 2)
+
+        # second bell pair
+        c.h(self.path[-3])
+        c.cx(self.path[-3], self.path[-2])
+
+        # first bell measurement
+        c.cnot(0, 1)
+        c.h(0)
+        c.measure([0, 1], [0, 1])
+        c.x(2).c_if(1, 1)
+        c.z(2).c_if(0, 1)
+
+        middle = int(len(self.path)/2)
+
+        for i in range(2, middle-1):
+            c.swap(i, i+1)
+        for i in reversed(range(middle+1, self.path[-2])):
+            c.swap(i, i-1)
+        c.cnot(self.path[middle-1], self.path[middle])
+        c.h(self.path[middle-1])
+
+        c.measure([self.path[middle-1], self.path[middle]], [0, 1])
+        c.x(self.path[-2]).c_if(1, 1)
+        c.z(self.path[-2]).c_if(0, 1)
+        c.cnot(self.path[-2], self.path[-1])
         return c

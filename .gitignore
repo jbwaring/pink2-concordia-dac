@@ -5,3 +5,8 @@
 
 results/*
 logs/*
+
+paper/*.synctex.gz
+paper/*.aux
+
+**/**.DS_Store
