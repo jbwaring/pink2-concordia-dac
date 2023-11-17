@@ -289,7 +289,6 @@ if __name__ == "__main__":
     service = QiskitRuntimeService()
 
     # Backend Loading
-    BACKEND_NAME = 'ibmq_qasm_simulator'
     backend = service.backend(BACKEND_NAME)
     # backend = service.least_busy(simulator=False)
     log.debug("Backend:\t{}\nNumber of Qubits:\t{}".format(
