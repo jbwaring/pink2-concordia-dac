@@ -6,7 +6,7 @@ from qiskit_experiments.library import ProcessTomography
 
 class EntanglementSwappingCNOTExperimentsController:
 
-    def __init__(self, backend, shots=1024, path=None, simulator=None, log=None):
+    def __init__(self, backend, shots=1024, path=None, simulator=None, log=None, no_analysis=None):
         # logging.getLogger(self.__class__.__name__).info
         if log is not None:
             self.debug = log.debug
@@ -18,6 +18,11 @@ class EntanglementSwappingCNOTExperimentsController:
         if path is None:
             self.debug('No path provided, building path')
             self.build_path()
+        else:
+            self.path = path
+
+        if no_analysis:
+            self.no_analysis = no_analysis
 
     def run(self, **kwargs):
         experiments = self.build_circuits(**kwargs)
@@ -58,8 +63,7 @@ class EntanglementSwappingCNOTExperimentsController:
         self.debug('-build_path')
         self.path = self.backend.coupling_map.shortest_undirected_path(
             0,
-            8)
-        # self.backend.n_qubits - 1)
+            self.backend.n_qubits - 1)
         self.debug('Path Nodes:\t%s', self.path)
         self.debug('Path length:\t%s', len(self.path))
 
@@ -85,19 +89,31 @@ class EntanglementSwappingCNOTExperimentsController:
     def build_tomo_experiment(self, circuit):
         self.debug('-build_tomo_experiment for circuit length %s',
                    circuit.num_qubits)
-        self.debug('-build_tomo_experiment physical_qubits {}\nPreparation Indices:\t{}\nMeasurement Indices:\t{}.'.format(
-            self.path[:circuit.num_qubits], [0,
-                                             circuit.num_qubits - 1], [circuit.num_qubits - 2,
-                                                                       circuit.num_qubits - 1]))
 
+        preparation_indices = [0,
+                               circuit.num_qubits - 1]
+        measurement_indices = [circuit.num_qubits - 2,
+                               circuit.num_qubits - 1]
+        self.debug('-build_tomo_experiment physical_qubits {}\nPreparation Indices:\t{}\nMeasurement Indices:\t{}.'.format(
+            self.path[:circuit.num_qubits], preparation_indices, measurement_indices))
+
+        if self.no_analysis:
+            return ProcessTomography(
+                circuit=circuit,
+                backend=self.backend,
+                target=self.target_operation,
+                preparation_indices=preparation_indices,
+                measurement_indices=measurement_indices,
+                physical_qubits=self.path[:circuit.num_qubits],
+                analysis=None
+
+            )
         return ProcessTomography(
             circuit=circuit,
             backend=self.backend,
             target=self.target_operation,
-            preparation_indices=[0,
-                                 circuit.num_qubits - 1],
-            measurement_indices=[circuit.num_qubits - 2,
-                                 circuit.num_qubits - 1],
+            preparation_indices=preparation_indices,
+            measurement_indices=measurement_indices,
             physical_qubits=self.path[:circuit.num_qubits],
 
         )
@@ -132,9 +148,10 @@ class EntanglementSwappingCNOTCircuitGenerator:
         # first bell measurement
         c.cnot(0, 1)
         c.h(0)
+        c.cnot(1, 2)
+        c.cz(0, 2)
         c.measure([0, 1], [0, 1])
-        c.x(2).c_if(1, 1)
-        c.z(2).c_if(0, 1)
+        # c.x(2).c_if(1, 1)
 
         middle = int(len(self.path)/2)
 
