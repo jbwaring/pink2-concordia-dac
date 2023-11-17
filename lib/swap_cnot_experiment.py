@@ -9,7 +9,7 @@ class PureSWAPCNOTExperimentsController:
     Experiment Controller for long range CNOT using only SWAPs.
     """
 
-    def __init__(self, backend, shots=1024, path=None, simulator=None, log=None):
+    def __init__(self, backend, shots=1024, path=None, simulator=None, log=None, no_analysis=None):
         """
         Initializes the experiment controller with specified parameters.
 
@@ -30,6 +30,11 @@ class PureSWAPCNOTExperimentsController:
         if path is None:
             self.debug('No path provided, building path')
             self.build_path()
+        else:
+            self.path = path
+
+        if no_analysis:
+            self.no_analysis = no_analysis
 
     def run(self, **kwargs):
         """
@@ -127,7 +132,18 @@ class PureSWAPCNOTExperimentsController:
             self.path[:circuit.num_qubits], [0,
                                              circuit.num_qubits - 1], [circuit.num_qubits - 2,
                                                                        circuit.num_qubits - 1]))
-
+        if (self.no_analysis):
+            return ProcessTomography(
+                circuit=circuit,
+                backend=self.backend,
+                target=self.target_operation,
+                preparation_indices=[0,
+                                     circuit.num_qubits - 1],
+                measurement_indices=[circuit.num_qubits - 2,
+                                     circuit.num_qubits - 1],
+                physical_qubits=self.path[:circuit.num_qubits],
+                analysis=None
+            )
         return ProcessTomography(
             circuit=circuit,
             backend=self.backend,
