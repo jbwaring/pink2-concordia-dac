@@ -308,7 +308,7 @@ if __name__ == "__main__":
         noise_model = NoiseModel.from_backend(real_backend)
         error_model_backend = real_backend
     else:
-        coupling_map = backend.configuration().coupling_map
+        coupling_map = backend.coupling_map
         basis_gates = backend.configuration().basis_gates
         number_qubits = backend.configuration().num_qubits
         noise_model = None
