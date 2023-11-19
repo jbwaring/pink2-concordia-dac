@@ -6,7 +6,8 @@ from lib.ent_swap_cnot_experiment import EntanglementSwappingCNOTExperimentsCont
 from dotenv import load_dotenv
 load_dotenv()
 
-SHOULD_RUN_ON_SIM = os.environ.get("SHOULD_RUN_ON_SIM")
+# SHOULD_RUN_ON_SIM = os.environ.get("SHOULD_RUN_ON_SIM")
+SHOULD_RUN_ON_SIM = True
 NUMBER_OF_SHOTS = os.environ.get("NUMBER_OF_SHOTS")
 BACKEND_NAME = os.environ.get("BACKEND_NAME")
 NUMBER_OF_EXPERIMENTS = os.environ.get("NUMBER_OF_EXPERIMENTS")
@@ -158,7 +159,7 @@ def ensure_dirs_exist():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
     ensure_dirs_exist()
     log = Logger(prefix="main", should_save_to_file='main')
     log.clear()

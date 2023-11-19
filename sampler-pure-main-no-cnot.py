@@ -1,7 +1,7 @@
 import os
 import logging
 from lib.helpers import get_qiskit_runtime_service
-from lib.ent_swap_cnot_experiment import EntanglementSwappingCNOTExperimentsController
+from lib.swap_cnot_experiment import PureSWAPCNOTExperimentsController
 from dotenv import load_dotenv
 import datetime
 from lib.helpers import *
@@ -118,19 +118,21 @@ def run_experiment(experiment_no=0, backend=None, completion_handler=None, servi
 
     if (SHOULD_RUN_ON_SIM):
         log.debug("Running on simulator")
-        controller = EntanglementSwappingCNOTExperimentsController(
+        controller = PureSWAPCNOTExperimentsController(
             backend=backend,
             shots=NUMBER_OF_SHOTS,
             path=None,
             simulator=service.get_backend('ibmq_qasm_simulator'),
-            log=log
+            log=log,
+            tomo_only_target=True
         )
     else:
-        controller = EntanglementSwappingCNOTExperimentsController(
+        controller = PureSWAPCNOTExperimentsController(
             backend=backend,
             shots=NUMBER_OF_SHOTS,
             path=None,
-            log=log
+            log=log,
+            tomo_only_target=True
         )
     controller.run()
     log.debug("Analysing {}.".format(experiment_no))
@@ -263,14 +265,14 @@ def run_jobs(circuits, noise_model=None, basis_gates=None, coupling_map=None, is
     )
     if (is_simulator):
         options.simulator = {
-            "noise_model": noise_model,
+            # "noise_model": noise_model,
             "basis_gates": basis_gates,
             "coupling_map": coupling_map,
             "seed_simulator": random.randint(1, 10000000)
         }
     options.skip_transpilation = True
     sampler = Sampler(options=options)
-    return sampler.run(circuits=circuits, skip_transpilation=True, shots=NUMBER_OF_SHOTS, dynamic=True,  **run_options)
+    return sampler.run(circuits=circuits, skip_transpilation=True, shots=NUMBER_OF_SHOTS,  **run_options)
 
 
 def setRuns(number_of_runs):
@@ -316,8 +318,8 @@ if __name__ == "__main__":
         error_model_backend = backend
 
     path = coupling_map.shortest_undirected_path(0, number_qubits - 1)
-    log.debug("Path:\t{}".format(path))
-    controller = EntanglementSwappingCNOTExperimentsController(
+
+    controller = PureSWAPCNOTExperimentsController(
         backend=backend,
         shots=NUMBER_OF_SHOTS,
         path=path,
@@ -332,8 +334,7 @@ if __name__ == "__main__":
     log.debug("Experiments:\t{}".format(experiments))
     log.debug("Number of Experiments:\t{}".format(len(experiments)))
     experiments_transpiled = [transpile(exp.circuits(
-    ),
-        coupling_map=coupling_map, basis_gates=basis_gates, backend=real_backend) for exp in experiments]
+    ), coupling_map=coupling_map, basis_gates=basis_gates) for exp in experiments]
     for experiment_transpiled in experiments_transpiled:
         log.debug(experiment_transpiled[0])
     USE_SAMPLER = True
@@ -375,11 +376,9 @@ if __name__ == "__main__":
 
         analysis = ProcessTomographyAnalysis()
         analysis.set_options(measurement_qubits=[
-            path[idx], path[idx+1]], preparation_qubits=[0, path[idx+1]], target=Operator([
-                [1, 0, 0, 0],
-                [0, 0, 0, 1],
-                [0, 0, 1, 0],
-                [0, 1, 0, 0]]))
+            path[idx-1]], preparation_qubits=[0], target=Operator([
+                [1, 0],
+                [0, 1]]))
         job._results = job_results[idx]
         exp_data = experiments[idx]._initialize_experiment_data()
         exp_data.add_jobs([job])
@@ -402,7 +401,7 @@ if __name__ == "__main__":
 
             'cnot_errors': [],
 
-            'experiment_id': 'entanglement-swap',
+            'experiment_id': 'swap-test-no-cnot',
             'shots': NUMBER_OF_SHOTS,
             'path': [n for n in path],
         },

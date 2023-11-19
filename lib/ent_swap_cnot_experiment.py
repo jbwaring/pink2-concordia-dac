@@ -23,6 +23,8 @@ class EntanglementSwappingCNOTExperimentsController:
 
         if no_analysis:
             self.no_analysis = no_analysis
+        else:
+            self.no_analysis = False
 
     def run(self, **kwargs):
         experiments = self.build_circuits(**kwargs)
@@ -50,11 +52,13 @@ class EntanglementSwappingCNOTExperimentsController:
                     self.debug('Running experiment: {}'.format(idx))
                     exp.set_transpile_options(
                         optimization_level=0,
+                        dynamic=True
                     )
                     self.jobs.append(exp.run(
                         backend=self.backend,
                         shots=self.shots,
-                    ).block_for_results())
+                        dynamic=True
+                    ))
 
     def fidelities(self):
         return [x.analysis_results()[1].value for x in self.jobs]
@@ -63,7 +67,7 @@ class EntanglementSwappingCNOTExperimentsController:
         self.debug('-build_path')
         self.path = self.backend.coupling_map.shortest_undirected_path(
             0,
-            self.backend.n_qubits - 1)
+            13)
         self.debug('Path Nodes:\t%s', self.path)
         self.debug('Path length:\t%s', len(self.path))
 
@@ -78,10 +82,9 @@ class EntanglementSwappingCNOTExperimentsController:
                 self.debug('Skipping: {}'.format(e))
 
         # Warning: QISKIT IS USING THE OTHER ENDIAN SO USE OTHER CNOT
-        self.target_operation = Operator([[1, 0, 0, 0],
-                                          [0, 0, 0, 1],
-                                          [0, 0, 1, 0],
-                                          [0, 1, 0, 0]])
+        self.target_operation = Operator([
+            [1, 0],
+            [0, 1]])
         [self.debug('Experiment {}:\n{}'.format(i, c.draw('text')))
          for i, c in enumerate(circuits)]
         return [self.build_tomo_experiment(c) for c in circuits]
@@ -112,8 +115,8 @@ class EntanglementSwappingCNOTExperimentsController:
             circuit=circuit,
             backend=self.backend,
             target=self.target_operation,
-            preparation_indices=preparation_indices,
-            measurement_indices=measurement_indices,
+            preparation_indices=[0],
+            measurement_indices=[circuit.num_qubits - 2],
             physical_qubits=self.path[:circuit.num_qubits],
 
         )
@@ -163,7 +166,10 @@ class EntanglementSwappingCNOTCircuitGenerator:
         c.h(self.path[middle-1])
 
         c.measure([self.path[middle-1], self.path[middle]], [0, 1])
-        c.x(self.path[-2]).c_if(1, 1)
-        c.z(self.path[-2]).c_if(0, 1)
+
+        with c.if_test((1, 1)):
+            c.x(self.path[-2])
+        with c.if_test((0, 1)):
+            c.z(self.path[-2])
         c.cnot(self.path[-2], self.path[-1])
         return c

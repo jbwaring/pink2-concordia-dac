@@ -9,7 +9,7 @@ class PureSWAPCNOTExperimentsController:
     Experiment Controller for long range CNOT using only SWAPs.
     """
 
-    def __init__(self, backend, shots=1024, path=None, simulator=None, log=None, no_analysis=None):
+    def __init__(self, backend, shots=1024, path=None, simulator=None, log=None, no_analysis=None, tomo_only_target=False):
         """
         Initializes the experiment controller with specified parameters.
 
@@ -35,6 +35,11 @@ class PureSWAPCNOTExperimentsController:
 
         if no_analysis:
             self.no_analysis = no_analysis
+
+        if tomo_only_target:
+            self.tomo_only_target = tomo_only_target
+        else:
+            self.tomo_only_target = False
 
     def run(self, **kwargs):
         """
@@ -108,10 +113,15 @@ class PureSWAPCNOTExperimentsController:
             circuits.append(self.build_circuit(i + 2, **kwargs))
 
         # Warning: QISKIT IS USING THE OTHER ENDIAN SO USE OTHER CNOT
-        self.target_operation = Operator([[1, 0, 0, 0],
-                                          [0, 0, 0, 1],
-                                          [0, 0, 1, 0],
-                                          [0, 1, 0, 0]])
+
+        if (self.tomo_only_target):
+            self.target_operation = Operator([[1, 0],
+                                              [0, 1]])
+        else:
+            self.target_operation = Operator([[1, 0, 0, 0],
+                                              [0, 0, 0, 1],
+                                              [0, 0, 1, 0],
+                                              [0, 1, 0, 0]])
         [self.debug('Experiment {}:\n{}'.format(i, c.draw('text')))
          for i, c in enumerate(circuits)]
         return [self.build_tomo_experiment(c) for c in circuits]
@@ -126,32 +136,39 @@ class PureSWAPCNOTExperimentsController:
         Returns:
            ProcessTomography(): The process tomography experiment.
         """
+
         self.debug('-build_tomo_experiment for circuit length %s',
                    circuit.num_qubits)
-        self.debug('-build_tomo_experiment physical_qubits {}\nPreparation Indices:\t{}\nMeasurement Indices:\t{}.'.format(
-            self.path[:circuit.num_qubits], [0,
-                                             circuit.num_qubits - 1], [circuit.num_qubits - 2,
-                                                                       circuit.num_qubits - 1]))
+
+        if (self.tomo_only_target):
+            preparation_indices = [0],
+            measurement_indices = [circuit.num_qubits - 2]
+        else:
+            preparation_indices = [0,
+                                   circuit.num_qubits - 1],
+            measurement_indices = [circuit.num_qubits - 2,
+                                   circuit.num_qubits - 1]
+
         if (self.no_analysis):
+            self.debug('-build_tomo_experiment physical_qubits {}\nPreparation Indices:\t{}\nMeasurement Indices:\t{}.'.format(
+                self.path[:circuit.num_qubits], [0], [circuit.num_qubits - 2]))
             return ProcessTomography(
                 circuit=circuit,
                 backend=self.backend,
                 target=self.target_operation,
-                preparation_indices=[0,
-                                     circuit.num_qubits - 1],
-                measurement_indices=[circuit.num_qubits - 2,
-                                     circuit.num_qubits - 1],
+                preparation_indices=[0],
+                measurement_indices=[circuit.num_qubits - 2],
                 physical_qubits=self.path[:circuit.num_qubits],
                 analysis=None
             )
+        self.debug('-build_tomo_experiment physical_qubits {}\nPreparation Indices:\t{}\nMeasurement Indices:\t{}.'.format(
+            self.path[:circuit.num_qubits], [0], [circuit.num_qubits - 2]))
         return ProcessTomography(
             circuit=circuit,
             backend=self.backend,
             target=self.target_operation,
-            preparation_indices=[0,
-                                 circuit.num_qubits - 1],
-            measurement_indices=[circuit.num_qubits - 2,
-                                 circuit.num_qubits - 1],
+            preparation_indices=preparation_indices,
+            measurement_indices=measurement_indices,
             physical_qubits=self.path[:circuit.num_qubits],
 
         )
