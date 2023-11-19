@@ -67,7 +67,7 @@ class EntanglementSwappingCNOTExperimentsController:
         self.debug('-build_path')
         self.path = self.backend.coupling_map.shortest_undirected_path(
             0,
-            13)
+            self.backend.n_qubits - 1)
         self.debug('Path Nodes:\t%s', self.path)
         self.debug('Path length:\t%s', len(self.path))
 

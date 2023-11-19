@@ -6,8 +6,7 @@ from lib.ent_swap_cnot_experiment import EntanglementSwappingCNOTExperimentsCont
 from dotenv import load_dotenv
 load_dotenv()
 
-# SHOULD_RUN_ON_SIM = os.environ.get("SHOULD_RUN_ON_SIM")
-SHOULD_RUN_ON_SIM = True
+SHOULD_RUN_ON_SIM = os.environ.get("SHOULD_RUN_ON_SIM")
 NUMBER_OF_SHOTS = os.environ.get("NUMBER_OF_SHOTS")
 BACKEND_NAME = os.environ.get("BACKEND_NAME")
 NUMBER_OF_EXPERIMENTS = os.environ.get("NUMBER_OF_EXPERIMENTS")
